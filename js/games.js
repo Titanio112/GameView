@@ -37,7 +37,9 @@ export function makeCarouselSlide(game) {
   const plats = (game.platforms || []).slice(0, 3).map(p => p.platform?.name || p).join(', ');
 
   el.innerHTML = `
-    <img src="${imgUrl(game)}" alt="${game.name}" loading="lazy">
+    <div class="carousel-slide-skeleton"></div>
+    <img src="${imgUrl(game)}" alt="${game.name}" loading="lazy" class="carousel-slide-img"
+      onload="this.classList.add('loaded');this.previousElementSibling.remove()">
     <div class="c-fade-bottom"></div>
     <div class="c-fade-left"></div>
     <div class="c-info">
