@@ -33,11 +33,12 @@ function updateHeaderUser() {
   if (!el) return;
 
   if (user && profile) {
+    const avatarUrl = profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`;
     el.innerHTML = `
       <div class="user-chip" id="user-chip-toggle">
         <span class="user-chip-name">${profile.username}</span>
         <div class="user-chip-avatar">
-          <img src="${profile.avatar_url || ''}" alt="${profile.display_name}">
+          <img src="${avatarUrl}" alt="${profile.display_name}">
         </div>
       </div>
       <div class="user-dropdown" id="user-dropdown">
@@ -240,6 +241,19 @@ function goProfile() {
   renderProfile();
 }
 
+function openEditProfileModal() {
+  const profile = getCurrentProfile();
+  if (!profile) return;
+
+  document.getElementById('ep-avatar-preview-img').src = profile.avatar_url || '';
+  document.getElementById('ep-avatar-url').value = profile.avatar_url || '';
+  document.getElementById('ep-display-name').value = profile.display_name || '';
+  document.getElementById('ep-pronouns').value = profile.pronouns || 'ele/dele';
+  document.getElementById('ep-bio').value = profile.bio || '';
+
+  openModal('edit-profile-modal-overlay');
+}
+
 async function goBrowse(type) {
   currentPage = 'browse';
   showPage('page-browse');
@@ -422,49 +436,85 @@ function initAuthHandlers() {
   });
 }
 
+function initEditProfile() {
+  document.getElementById('ep-save-btn')?.addEventListener('click', async () => {
+    const profile = getCurrentProfile();
+    if (!profile) return;
+
+    const avatarUrl = document.getElementById('ep-avatar-url').value.trim();
+    const displayName = document.getElementById('ep-display-name').value.trim();
+    const pronouns = document.getElementById('ep-pronouns').value;
+    const bio = document.getElementById('ep-bio').value.trim();
+
+    try {
+      const updatedProfile = await upsertProfile({
+        id: profile.id,
+        username: profile.username,
+        display_name: displayName || profile.username,
+        avatar_url: avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`,
+        pronouns,
+        bio,
+      });
+
+      if (updatedProfile) {
+        showToast('Perfil salvo com sucesso!');
+        closeModal('edit-profile-modal-overlay');
+        updateHeaderUser();
+        renderProfile();
+      } else {
+        showToast('Erro ao salvar perfil. Tente novamente.');
+      }
+    } catch (err) {
+      showToast('Erro ao salvar perfil: ' + (err.message || 'tente novamente'));
+    }
+  });
+}
+
 // Event delegation
 function initEventDelegation() {
   document.addEventListener('click', e => {
-    if (!e.target.closest('[data-stop-propagation]')) {
-      e.stopPropagation();
-    }
-
     const dropdown = document.getElementById('user-dropdown');
     if (dropdown && !e.target.closest('#user-chip-toggle') && !e.target.closest('#user-dropdown')) {
       dropdown.classList.remove('open');
     }
 
-    const target = e.target.closest('[data-action]');
-    if (!target) return;
+    const target = e.target.closest('[data-action']');
+    if (target) {
+      const action = target.dataset.action;
 
-    const action = target.dataset.action;
+      if (action === 'go-game') {
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+        if (searchInput) searchInput.value = '';
+        if (searchResults) searchResults.classList.remove('open');
+        goGame(target.dataset.gameId);
+      }
+      if (action === 'go-publisher') goPublisher(target.dataset.pubId);
+      if (action === 'go-profile') goProfile();
+      if (action === 'go-home') goHome();
+      if (action === 'open-review') openReview(target.dataset.reviewId);
+      if (action === 'filter-genre') filterGenre(target.dataset.genre);
+      if (action === 'open-auth') openAuthModal('login');
+      if (action === 'open-edit-profile') openEditProfileModal();
+      if (action === 'sign-out') {
+        signOut().then(() => {
+          updateHeaderUser();
+          showToast('Você saiu da sua conta.');
+        });
+      }
+      if (action === 'post-comment') postComment(target.dataset.reviewId);
+      if (action === 'comment-click') {
+        openReview(target.dataset.reviewId);
+        setTimeout(() => {
+          const ta = document.getElementById(`comment-ta-${target.dataset.reviewId}`);
+          if (ta) ta.focus();
+        }, 300);
+      }
+    }
 
-    if (action === 'go-game') {
-      const searchInput = document.getElementById('search-input');
-      const searchResults = document.getElementById('search-results');
-      if (searchInput) searchInput.value = '';
-      if (searchResults) searchResults.classList.remove('open');
-      goGame(target.dataset.gameId);
-    }
-    if (action === 'go-publisher') goPublisher(target.dataset.pubId);
-    if (action === 'go-profile') goProfile();
-    if (action === 'go-home') goHome();
-    if (action === 'open-review') openReview(target.dataset.reviewId);
-    if (action === 'filter-genre') filterGenre(target.dataset.genre);
-    if (action === 'open-auth') openAuthModal('login');
-    if (action === 'sign-out') {
-      signOut().then(() => {
-        updateHeaderUser();
-        showToast('Você saiu da sua conta.');
-      });
-    }
-    if (action === 'post-comment') postComment(target.dataset.reviewId);
-    if (action === 'comment-click') {
-      openReview(target.dataset.reviewId);
-      setTimeout(() => {
-        const ta = document.getElementById(`comment-ta-${target.dataset.reviewId}`);
-        if (ta) ta.focus();
-      }, 300);
+    const dropdown = document.getElementById('user-dropdown');
+    if (dropdown && !e.target.closest('#user-chip-toggle') && !e.target.closest('#user-dropdown')) {
+      dropdown.classList.remove('open');
     }
   });
 
@@ -521,6 +571,7 @@ async function init() {
   initSearch();
   initAuthHandlers();
   initWriteReview();
+  initEditProfile();
   await goHome();
 }
 

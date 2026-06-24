@@ -121,6 +121,8 @@
   border:1px solid var(--border-1);
   background:var(--bg-surface);
   transition:border-color var(--t);
+  position:relative;
+  z-index:1000;
 }
 .user-chip:hover{border-color:var(--purple-border)}
 .user-chip-name{font-size:.8rem;font-weight:600}
