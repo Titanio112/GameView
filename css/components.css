@@ -480,14 +480,15 @@
 }
 
 /* modal escrever resenha */
-.write-modal-box{max-width:560px}
+.write-modal-box{max-width:560px;overflow:visible}
 .wm-body{padding:30px 28px 28px}
 .wm-title{
   font-size:1.1rem;font-weight:900;
   letter-spacing:-.02em;margin-bottom:22px;
   padding-right:36px;
 }
-.wm-game-selector{position:relative;margin-bottom:4px}
+.wm-game-selector{position:relative;margin-bottom:4px;z-index:20}
+.wm-game-dropdown{z-index:100}
 .wm-game-search{
   width:100%;
   background:rgba(255,255,255,.05);
@@ -641,7 +642,7 @@
 }
 
 /* modal editar perfil */
-.edit-profile-modal-box{max-width:520px}
+.edit-profile-modal-box{max-width:520px;overflow:visible}
 .ep-body{padding:28px 28px 26px}
 .ep-title{
   font-size:1.05rem;font-weight:900;
@@ -727,7 +728,7 @@
   border:1px solid var(--purple-border);
   border-radius:var(--radius-m);
   max-height:180px;overflow-y:auto;
-  z-index:20;display:none;
+  z-index:100;display:none;
 }
 .ep-fav-dropdown.open{display:block}
 .ep-fav-option{
