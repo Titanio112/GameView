@@ -1,9 +1,11 @@
-import { initAuth, getCurrentUser, getCurrentProfile, signIn, signUp, signOut, resetPassword, requireAuth, onAuthChange } from './auth.js';
+import { initAuth, getCurrentUser, getCurrentProfile, signIn, signUp, signOut, resetPassword, requireAuth, onAuthStateChange } from './auth.js';
 import { fetchFeaturedGames, fetchPopularGames, fetchNewReleases, fetchGameDetails, fetchPublisher, fetchPublisherGames, searchAPI } from './api.js';
 import { showPage, openModal, closeModal, skeletons, showToast, formatDate } from './ui.js';
 import { initCarousel, goSlide, resetCarouselTimer, scrollShowcase, makeGameCard } from './games.js';
 import { makeReviewCard, renderReviews, renderTagCloud, renderTrending, filterGenre, openReview, initWriteReview, postComment, loadReviews, loadGenres } from './reviews.js';
+import { getUserLibrary } from './api.js';
 import { loadNotifications, markAllRead, renderNotificationBadge } from './notifications.js';
+import { supabase } from './config.js';
 
 let currentPage = 'home';
 let gamesCache = {};
@@ -15,6 +17,15 @@ const errorMessages = {
   'User already registered': 'Este e-mail já está cadastrado.',
   'Password should be at least 6 characters': 'A senha deve ter pelo menos 6 caracteres.',
   'Unable to validate email address': 'Digite um e-mail válido.',
+  'User already exists': 'Este e-mail já está cadastrado.',
+  'email address already registered': 'Este e-mail já está cadastrado.',
+  'signup_disabled': 'Cadastro desativado no momento.',
+  'weak password': 'A senha é muito fraca. Use pelo menos 6 caracteres.',
+  'invalid email': 'Digite um e-mail válido.',
+  'network error': 'Erro de conexão. Verifique sua internet.',
+  'Failed to fetch': 'Erro de conexão. Verifique sua internet.',
+  'Unexpected error': 'Erro inesperado. Tente novamente.',
+  'JWT expired': 'Sessão expirada. Faça login novamente.',
 };
 function translateError(message) {
   for (const [key, value] of Object.entries(errorMessages)) {
@@ -241,15 +252,38 @@ function goProfile() {
   renderProfile();
 }
 
-function openEditProfileModal() {
+async function openEditProfileModal() {
   const profile = getCurrentProfile();
-  if (!profile) return;
+  const user = getCurrentUser();
+  if (!profile || !user) return;
 
   document.getElementById('ep-avatar-preview-img').src = profile.avatar_url || '';
   document.getElementById('ep-avatar-url').value = profile.avatar_url || '';
   document.getElementById('ep-display-name').value = profile.display_name || '';
   document.getElementById('ep-pronouns').value = profile.pronouns || 'ele/dele';
   document.getElementById('ep-bio').value = profile.bio || '';
+
+  const library = await getUserLibrary(user.id);
+  const favGrid = document.getElementById('ep-favs-grid');
+  if (favGrid) {
+    favGrid.innerHTML = '';
+    const favGames = library.filter(item => item.status === 'favorite').slice(0, 4);
+    for (let i = 0; i < 4; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'ep-fav-slot';
+      if (favGames[i]) {
+        const game = favGames[i].games;
+        slot.classList.add('has-game');
+        slot.innerHTML = `
+          <img src="${game?.cover_url || ''}" alt="${game?.title || ''}">
+          <div class="ep-fav-slot-clear" data-action="remove-favorite" data-game-id="${favGames[i].game_id}">&times;</div>
+        `;
+      } else {
+        slot.innerHTML = `<div class="ep-fav-slot-placeholder">+</div>`;
+      }
+      favGrid.appendChild(slot);
+    }
+  }
 
   openModal('edit-profile-modal-overlay');
 }
@@ -468,6 +502,98 @@ function initEditProfile() {
       showToast('Erro ao salvar perfil: ' + (err.message || 'tente novamente'));
     }
   });
+
+  let favSearchTimeout;
+  document.getElementById('ep-fav-search')?.addEventListener('input', (e) => {
+    clearTimeout(favSearchTimeout);
+    const q = e.target.value.trim().toLowerCase();
+    const dd = document.getElementById('ep-fav-dropdown');
+    if (!q) { dd.classList.remove('open'); return; }
+
+    dd.innerHTML = '<div class="wm-search-loading">Buscando...</div>';
+    dd.classList.add('open');
+
+    favSearchTimeout = setTimeout(async () => {
+      const results = await searchAPI(q);
+      dd.innerHTML = '';
+      if (!results?.length) {
+        dd.innerHTML = '<div style="padding:10px 12px;font-size:.82rem;color:var(--text-3)">Nenhum jogo encontrado.</div>';
+      } else {
+        results.slice(0, 8).forEach(g => {
+          const opt = document.createElement('div');
+          opt.className = 'ep-fav-option';
+          opt.innerHTML = `
+            <img src="${g.background_image || g.cover_url || ''}" alt="${g.name}">
+            <div>
+              <div class="ep-fav-option-name">${g.name}</div>
+              <div class="ep-fav-option-year">${g.released ? new Date(g.released).getFullYear() : ''}</div>
+            </div>
+          `;
+          opt.addEventListener('click', () => addFavoriteGame(g));
+          dd.appendChild(opt);
+        });
+      }
+      dd.classList.add('open');
+    }, 400);
+  });
+
+  document.getElementById('ep-fav-search')?.addEventListener('focus', (e) => {
+    if (e.target.value.trim()) {
+      document.getElementById('ep-fav-dropdown')?.classList.add('open');
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.ep-fav-search-wrap')) {
+      document.getElementById('ep-fav-dropdown')?.classList.remove('open');
+    }
+  });
+}
+
+async function addFavoriteGame(game) {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  const library = await getUserLibrary(user.id);
+  const favCount = library.filter(item => item.status === 'favorite').length;
+  if (favCount >= 4) {
+    showToast('Máximo de 4 jogos favoritos.');
+    return;
+  }
+
+  const { addToLibrary } = await import('./api.js');
+  const result = await addToLibrary({
+    user_id: user.id,
+    game_id: game.id,
+    status: 'favorite',
+  });
+
+  if (result) {
+    showToast('Jogo adicionado aos favoritos!');
+    document.getElementById('ep-fav-search').value = '';
+    document.getElementById('ep-fav-dropdown').classList.remove('open');
+    openEditProfileModal();
+  } else {
+    showToast('Erro ao adicionar favorito.');
+  }
+}
+
+async function removeFavoriteGame(gameId) {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  const { error } = await supabase
+    .from('user_library')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('game_id', gameId);
+
+  if (!error) {
+    showToast('Jogo removido dos favoritos.');
+    openEditProfileModal();
+  } else {
+    showToast('Erro ao remover favorito.');
+  }
 }
 
 // Event delegation
@@ -478,7 +604,7 @@ function initEventDelegation() {
       dropdown.classList.remove('open');
     }
 
-    const target = e.target.closest('[data-action']');
+    const target = e.target.closest('[data-action]');
     if (target) {
       const action = target.dataset.action;
 
@@ -509,6 +635,9 @@ function initEventDelegation() {
           const ta = document.getElementById(`comment-ta-${target.dataset.reviewId}`);
           if (ta) ta.focus();
         }, 300);
+      }
+      if (action === 'remove-favorite') {
+        removeFavoriteGame(target.dataset.gameId);
       }
     }
 
@@ -567,15 +696,6 @@ async function init() {
     console.warn('Auth init failed:', e);
   }
   onAuthChange(updateHeaderUser);
-  updateHeaderUser();
-  initEventDelegation();
-  initSearch();
-  initAuthHandlers();
-  initWriteReview();
-  initEditProfile();
-  await goHome();
-}
-  onAuthStateChange(updateHeaderUser);
   updateHeaderUser();
   initEventDelegation();
   initSearch();
