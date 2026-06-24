@@ -1,0 +1,21 @@
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# MiMoCode
+skills-lock.json
+.agents/
+
+# Logs
+*.log
+
+# Env
+.env
+.env.local
