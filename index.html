@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GameView — Resenhas de Jogos</title>
+<meta name="description" content="Descubra, avalie e compartilhe resenhas de jogos">
+<meta name="theme-color" content="#0b0c10">
+<link rel="icon" type="image/png" href="assets/icons8-game-16.png">
+<link rel="apple-touch-icon" href="assets/icons8-game-16.png">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/pages.css">
+<link type="image/png" sizes="16x16" rel="icon" href="assets/icons8-game-3d-fluency-16.png">
+</head>
+<body>
+
+<!-- ================================================================
+     HEADER
+     [FIX #1] Removidos: logo-mark "GV" + links "Explorar" e "Listas"
+     [NEW #4] Adicionado: botão "Escrever Resenha"
+================================================================ -->
+<header id="header">
+  <div class="header-logo" data-nav="home">
+    GameView
+  </div>
+
+  <div class="header-search">
+    <div class="search-wrap">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" id="search-input" placeholder="Buscar jogos, empresas..." autocomplete="off">
+    </div>
+    <div id="search-results"></div>
+  </div>
+
+  <div class="header-actions">
+    <button class="btn-write-review" id="btn-write-review-header" aria-label="Escrever Resenha">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+      </svg>
+      <span>Escrever Resenha</span>
+    </button>
+    <div id="header-user-area"></div>
+  </div>
+</header>
+
+<!-- ================================================================
+     APP
+================================================ -->
+<main id="app">
+
+  <!-- ======================== HOME ======================== -->
+  <section id="page-home" class="page is-active">
+    <div id="carousel-section">
+      <div class="carousel-track" id="carousel-track">
+        <!-- populado por JS -->
+      </div>
+      <button class="c-arrow" id="carousel-prev" aria-label="Anterior">&#8249;</button>
+      <button class="c-arrow" id="carousel-next" aria-label="Próximo">&#8250;</button>
+      <div class="c-dots" id="carousel-dots"></div>
+    </div>
+
+    <div class="container">
+      <!-- Vitrine: Em Alta -->
+      <section class="showcase-section">
+        <div class="s-title">
+          <div class="s-title-bar"></div>
+          <h2>Em Alta</h2>
+          <span class="s-title-link" data-nav="browse" data-browse-type="popular">Ver todos →</span>
+        </div>
+        <div class="showcase-wrap">
+          <div class="showcase-scroll" id="scroll-popular">
+            <!-- populado por JS -->
+          </div>
+          <button class="sh-arrow sh-prev" data-scroll="scroll-popular">&#8249;</button>
+          <button class="sh-arrow sh-next" data-scroll="scroll-popular">&#8250;</button>
+        </div>
+      </section>
+
+      <!-- Vitrine: Lançamentos -->
+      <section class="showcase-section">
+        <div class="s-title">
+          <div class="s-title-bar"></div>
+          <h2>Lançamentos Recentes</h2>
+          <span class="s-title-link" data-nav="browse" data-browse-type="new">Ver todos →</span>
+        </div>
+        <div class="showcase-wrap">
+          <div class="showcase-scroll" id="scroll-new">
+            <!-- populado por JS -->
+          </div>
+          <button class="sh-arrow sh-prev" data-scroll="scroll-new">&#8249;</button>
+          <button class="sh-arrow sh-next" data-scroll="scroll-new">&#8250;</button>
+        </div>
+      </section>
+
+      <!-- Feed -->
+      <section class="feed-section">
+        <div class="feed-layout">
+          <div>
+            <div class="s-title">
+              <div class="s-title-bar"></div>
+              <h2>Feed de Resenhas</h2>
+            </div>
+            <div id="review-list" class="review-list">
+              <!-- populado por JS -->
+            </div>
+          </div>
+
+          <aside class="sidebar">
+            <div class="sb-card">
+              <div class="sb-card-title">Filtrar por Gênero</div>
+              <div class="tag-cloud" id="tag-cloud">
+                <!-- populado por JS -->
+              </div>
+            </div>
+            <div class="sb-card">
+              <div class="sb-card-title">Em Alta Esta Semana</div>
+              <div id="trending-list"></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ======================== JOGO ======================== -->
+  <section id="page-game" class="page">
+    <div class="game-banner">
+      <img id="game-banner-img" src="" alt="">
+      <div class="gb-fade-bottom"></div>
+      <div class="gb-fade-left"></div>
+      <div class="gb-info">
+        <span class="gb-title" id="gb-title"></span>
+        <span class="gb-year" id="gb-year"></span>
+        <div class="gb-company-row" id="gb-company-row"></div>
+      </div>
+    </div>
+    <div class="container game-content">
+      <div class="game-layout">
+        <div class="game-aside">
+          <img class="game-cover-img" id="game-cover-img" src="" alt="">
+          <div class="game-score-box">
+            <div class="gs-number" id="game-score">—</div>
+            <div class="gs-label">Metacritic</div>
+          </div>
+        </div>
+        <div class="game-main">
+          <p class="game-synopsis" id="game-synopsis"></p>
+          <div class="game-meta-box" id="game-meta-box"></div>
+          <div class="s-title">
+            <div class="s-title-bar"></div>
+            <h2>Resenhas</h2>
+          </div>
+          <div class="review-list" id="game-review-list"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== PUBLISHER ======================== -->
+  <section id="page-publisher" class="page">
+    <div class="container">
+      <div id="pub-header" class="pub-header"></div>
+      <div class="s-title">
+        <div class="s-title-bar"></div>
+        <h2>Catálogo de Jogos</h2>
+      </div>
+      <div class="pub-games-grid" id="pub-games-grid"></div>
+    </div>
+  </section>
+
+  <!-- ======================== PERFIL ======================== -->
+  <section id="page-profile" class="page">
+    <div class="container">
+      <div id="profile-header" class="profile-header"></div>
+      <div class="profile-favs-section">
+        <div class="s-title">
+          <div class="s-title-bar"></div>
+          <h2>Jogos Favoritos</h2>
+        </div>
+        <div class="favs-row" id="favs-row"></div>
+      </div>
+      <div class="s-title">
+        <div class="s-title-bar"></div>
+        <h2>Resenhas Recentes</h2>
+      </div>
+      <div class="review-list" id="profile-review-list"></div>
+    </div>
+  </section>
+
+  <!-- ======================== BROWSE ======================== -->
+  <section id="page-browse" class="page">
+    <div class="container">
+      <div class="browse-header">
+        <button class="browse-back" id="browse-back" data-action="go-home">← Voltar</button>
+        <h1 class="browse-title" id="browse-title"></h1>
+      </div>
+      <div class="browse-grid" id="browse-grid"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ================================================================
+     MODAL: RESENHA (ler)
+     [FIX #2] Overlay com cursor pointer + stopPropagation no modal-box
+================================================================ -->
+<div class="modal-overlay" id="review-modal-overlay">
+  <div class="modal-box" id="review-modal-box">
+    <button class="modal-close-btn" id="close-review-modal" aria-label="Fechar">&times;</button>
+    <div id="review-modal-content"></div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: AUTH
+================================================================ -->
+<div class="modal-overlay" id="auth-modal-overlay">
+  <div class="modal-box auth-modal-box">
+    <button class="modal-close-btn" id="close-auth-modal" aria-label="Fechar">&times;</button>
+    <div class="am-body">
+      <div class="am-logo">GameView</div>
+      <p class="am-sub">Entre para curtir, comentar e criar resenhas</p>
+
+      <div class="auth-tabs">
+        <button class="auth-tab is-active" data-auth-tab="login">Entrar</button>
+        <button class="auth-tab" data-auth-tab="register">Criar Conta</button>
+        <button class="auth-tab" data-auth-tab="forgot">Recuperar</button>
+      </div>
+
+      <div class="auth-panel is-active" id="auth-panel-login">
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input type="email" class="form-input" placeholder="seu@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Senha</label>
+          <input type="password" class="form-input" placeholder="••••••••">
+        </div>
+        <span class="forgot-link" data-auth-tab="forgot">Esqueceu a senha?</span>
+        <button class="btn-auth-primary" id="btn-simulate-login">Entrar</button>
+        <div class="auth-divider">ou</div>
+        <button class="btn-auth-alt btn-google-disabled" id="btn-google-login">Continuar com Google</button>
+        <div class="google-hint">Em breve disponível</div>
+      </div>
+
+      <div class="auth-panel" id="auth-panel-register">
+        <div class="form-group">
+          <label class="form-label">Nome de usuário</label>
+          <input type="text" class="form-input" placeholder="seunome">
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input type="email" class="form-input" placeholder="seu@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Senha</label>
+          <input type="password" class="form-input" placeholder="••••••••">
+        </div>
+        <button class="btn-auth-primary" id="btn-register">Criar Conta</button>
+      </div>
+
+      <div class="auth-panel" id="auth-panel-forgot">
+        <p style="font-size:.83rem;color:var(--text-2);line-height:1.6">
+          Enviaremos um link para você redefinir sua senha.
+        </p>
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input type="email" class="form-input" placeholder="seu@email.com">
+        </div>
+        <button class="btn-auth-primary" id="btn-forgot-password">Enviar Link de Recuperação</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: ESCREVER RESENHA [NEW #4]
+================================================================ -->
+<div class="modal-overlay" id="write-review-modal-overlay">
+  <div class="modal-box write-modal-box">
+    <button class="modal-close-btn" id="close-write-review-modal" aria-label="Fechar">&times;</button>
+    <div class="wm-body">
+      <div class="wm-title">✍️ Escrever Resenha</div>
+
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Jogo</label>
+        <div class="wm-game-selector">
+          <input type="text" class="wm-game-search" id="wm-game-search"
+            placeholder="Buscar jogo por nome..." autocomplete="off">
+          <div class="wm-game-dropdown" id="wm-game-dropdown"></div>
+        </div>
+        <div class="wm-selected-game" id="wm-selected-game">
+          <img class="wm-sel-cover" id="wm-sel-cover" src="" alt="">
+          <span class="wm-sel-name" id="wm-sel-name"></span>
+          <span class="wm-sel-clear" id="wm-sel-clear" title="Trocar jogo">&times;</span>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Nota</label>
+        <div style="display:flex;align-items:center;gap:2px;margin-top:4px">
+          <div class="star-picker" id="star-picker"></div>
+          <span class="star-display-label" id="star-display-label">—</span>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:6px">
+        <label class="form-label">Resenha <span style="color:var(--text-3);font-weight:400">(máx. 800 caracteres)</span></label>
+        <div class="wm-textarea-wrap" style="margin-top:4px">
+          <textarea class="wm-textarea" id="wm-textarea"
+            placeholder="Compartilhe sua opinião sobre este jogo..." maxlength="800"></textarea>
+          <span class="wm-char-counter" id="wm-char-counter">800</span>
+        </div>
+      </div>
+
+      <div class="wm-actions-row">
+        <button class="btn-wm-cancel" id="btn-wm-cancel">Cancelar</button>
+        <button class="btn-wm-save" id="btn-wm-save" disabled>Publicar Resenha</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: EDITAR PERFIL [NEW #5]
+================================================================ -->
+<div class="modal-overlay" id="edit-profile-modal-overlay">
+  <div class="modal-box edit-profile-modal-box">
+    <button class="modal-close-btn" id="close-edit-profile-modal" aria-label="Fechar">&times;</button>
+    <div class="ep-body">
+      <div class="ep-title">Editar Perfil</div>
+
+      <div class="ep-avatar-row">
+        <div class="ep-avatar-preview">
+          <img id="ep-avatar-preview-img" src="" alt="Avatar">
+        </div>
+        <input type="url" class="ep-avatar-url" id="ep-avatar-url"
+          placeholder="URL da foto de perfil...">
+      </div>
+
+      <div class="ep-fields">
+        <div class="form-group">
+          <label class="form-label">Nome de exibição</label>
+          <input type="text" class="form-input" id="ep-display-name" placeholder="Seu nome">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pronomes</label>
+          <select class="form-select" id="ep-pronouns">
+            <option value="ele/dele">ele/dele</option>
+            <option value="ela/dela">ela/dela</option>
+            <option value="elu/delu">elu/delu (neutro)</option>
+            <option value="ile/dile">ile/dile (neutro)</option>
+            <option value="Prefiro não informar">Prefiro não informar</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bio</label>
+          <textarea class="form-input" id="ep-bio" rows="3"
+            style="resize:vertical;min-height:72px"
+            placeholder="Fale um pouco sobre você..."></textarea>
+        </div>
+      </div>
+
+      <div class="ep-favs-section">
+        <div class="ep-favs-label">Jogos Favoritos (até 4)</div>
+        <div class="ep-fav-search-wrap">
+          <input type="text" class="ep-fav-search" id="ep-fav-search"
+            placeholder="Buscar jogo para favoritar..." autocomplete="off">
+          <div class="ep-fav-dropdown" id="ep-fav-dropdown"></div>
+        </div>
+        <div class="ep-favs-grid" id="ep-favs-grid"></div>
+      </div>
+
+      <button class="ep-save-btn" id="ep-save-btn">Salvar Alterações</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
