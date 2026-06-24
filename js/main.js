@@ -1,4 +1,4 @@
-import { initAuth, getCurrentUser, getCurrentProfile, signIn, signUp, signOut, resetPassword, requireAuth } from './auth.js';
+import { initAuth, getCurrentUser, getCurrentProfile, signIn, signUp, signOut, resetPassword, requireAuth, onAuthChange } from './auth.js';
 import { fetchFeaturedGames, fetchPopularGames, fetchNewReleases, fetchGameDetails, fetchPublisher, fetchPublisherGames, searchAPI } from './api.js';
 import { showPage, openModal, closeModal, skeletons, showToast, formatDate } from './ui.js';
 import { initCarousel, goSlide, resetCarouselTimer, scrollShowcase, makeGameCard } from './games.js';
@@ -566,6 +566,16 @@ async function init() {
   } catch (e) {
     console.warn('Auth init failed:', e);
   }
+  onAuthChange(updateHeaderUser);
+  updateHeaderUser();
+  initEventDelegation();
+  initSearch();
+  initAuthHandlers();
+  initWriteReview();
+  initEditProfile();
+  await goHome();
+}
+  onAuthStateChange(updateHeaderUser);
   updateHeaderUser();
   initEventDelegation();
   initSearch();
