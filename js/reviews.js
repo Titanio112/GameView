@@ -177,7 +177,7 @@ function buildStarPicker(currentRating) {
     else if (currentRating >= star - 0.5) starEl.classList.add('half');
 
     starEl.setAttribute('role', 'slider');
-    starEl.setAttribute('aria-label', `Nota ${star} de 5`);
+    starEl.setAttribute('aria-label', `Avalie com ${star} estrelas`);
     starEl.setAttribute('aria-valuemin', '0.5');
     starEl.setAttribute('aria-valuemax', '5');
     starEl.setAttribute('aria-valuenow', currentRating.toString());
@@ -292,7 +292,14 @@ function validateWriteForm() {
   const hasRating = writeState.rating > 0;
   const text = document.getElementById('wm-textarea').value.trim();
   const hasText = text.length >= 20;
-  document.getElementById('btn-wm-save').disabled = !(hasGame && hasRating && hasText);
+  const saveBtn = document.getElementById('btn-wm-save');
+  const disabled = !(hasGame && hasRating && hasText);
+  saveBtn.disabled = disabled;
+  if (disabled) {
+    saveBtn.title = 'Preencha todos os campos para publicar';
+  } else {
+    saveBtn.removeAttribute('title');
+  }
   return { hasGame, hasRating, hasText, text };
 }
 
