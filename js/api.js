@@ -146,7 +146,7 @@ export async function createReview(reviewData) {
     .insert(reviewData)
     .select()
     .single();
-  if (error) console.warn('Create review error:', error);
+  if (error) throw error;
   return data;
 }
 

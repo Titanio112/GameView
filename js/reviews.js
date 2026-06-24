@@ -337,15 +337,22 @@ async function publishReview() {
     created_at: new Date().toISOString(),
   };
 
-  const result = await createReview(reviewData);
-  if (result) {
+  try {
+    await createReview(reviewData);
     closeModal('write-review-modal-overlay');
     showToast('Resenha publicada!');
     const reviews = await loadReviews();
     renderReviews('review-list', reviews);
-  } else {
-    showToast('Erro ao publicar resenha. Tente novamente.');
+  } catch (err) {
+    showToast('Erro ao publicar: ' + translateReviewError(err.message));
   }
+}
+
+function translateReviewError(message) {
+  if (message.includes('duplicate') || message.includes('already exists')) return 'Você já publicou uma resenha para este jogo.';
+  if (message.includes('foreign key') || message.includes('game_id')) return 'Jogo não encontrado.';
+  if (message.includes('unauthorized') || message.includes('auth')) return 'Sessão expirada. Faça login novamente.';
+  return 'Erro ao publicar. Tente novamente.';
 }
 
 // Review Modal (read)
