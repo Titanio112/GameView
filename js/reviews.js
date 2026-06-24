@@ -146,7 +146,10 @@ export function initWriteReview() {
 }
 
 function openWriteReviewModal() {
-  if (!requireAuth()) return openModal('auth-modal-overlay');
+  if (!requireAuth()) {
+    showToast('Faça login para escrever uma resenha');
+    return openModal('auth-modal-overlay');
+  }
 
   writeState = { selectedGame: null, rating: 0 };
   document.getElementById('wm-game-search').value = '';
