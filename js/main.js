@@ -26,6 +26,18 @@ const errorMessages = {
   'Failed to fetch': 'Erro de conexão. Verifique sua internet.',
   'Unexpected error': 'Erro inesperado. Tente novamente.',
   'JWT expired': 'Sessão expirada. Faça login novamente.',
+  'User already registered': 'Este e-mail já está cadastrado.',
+  'email already registered': 'Este e-mail já está cadastrado.',
+  'email already exists': 'Este e-mail já está cadastrado.',
+  'duplicate email': 'Este e-mail já está cadastrado.',
+  'user already exists': 'Este e-mail já está cadastrado.',
+  'email_exists': 'Este e-mail já está cadastrado.',
+  'User already exists': 'Este e-mail já está cadastrado.',
+  'Email already in use': 'Este e-mail já está cadastrado.',
+  'too_many_requests': 'Muitas tentativas. Aguarde um momento.',
+  'rate limited': 'Muitas tentativas. Aguarde um momento.',
+  'timeout': 'Tempo esgotado. Tente novamente.',
+  'connection refused': 'Erro de conexão. Verifique sua internet.',
 };
 function translateError(message) {
   for (const [key, value] of Object.entries(errorMessages)) {
