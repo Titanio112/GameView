@@ -549,31 +549,33 @@
 }
 .wm-sel-clear:hover{color:var(--text-1)}
 .star-picker{
-  display:flex;gap:0;margin:4px 0;
-  font-size:0;
+  display:flex;gap:2px;margin:4px 0;
 }
-.star-picker-half{
+.star-picker-star{
   display:inline-block;
-  width:16px;height:28px;
+  width:28px;height:28px;
   cursor:pointer;
   position:relative;
   font-size:1.7rem;line-height:28px;
   color:var(--text-3);
   transition:color 80ms ease;
   user-select:none;
+  text-align:center;
 }
-.star-picker-half.filled{color:var(--purple-400)}
-.star-picker-half:nth-child(odd)::before{
+.star-picker-star.filled{color:var(--purple-400)}
+.star-picker-star.half{color:var(--text-3)}
+.star-picker-star.half::before{
   content:'\2605';
   position:absolute;left:0;top:0;
   clip-path:inset(0 50% 0 0);
   width:100%;
+  color:var(--purple-400);
 }
-.star-picker-half:nth-child(even)::before{
-  content:'\2605';
-  position:absolute;right:0;top:0;
-  clip-path:inset(0 0 0 50%);
-  width:100%;
+.star-picker-star:focus{outline:none}
+.star-picker-star:focus-visible{
+  outline:2px solid var(--purple-500);
+  outline-offset:2px;
+  border-radius:2px;
 }
 .star-display-label{
   font-size:.8rem;color:var(--purple-300);

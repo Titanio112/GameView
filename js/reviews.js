@@ -169,41 +169,60 @@ function buildStarPicker(currentRating) {
   picker.innerHTML = '';
 
   for (let star = 1; star <= 5; star++) {
-    const leftHalf = document.createElement('span');
-    leftHalf.className = 'star-picker-half';
-    leftHalf.dataset.value = star - 0.5;
-    leftHalf.textContent = '\u2605';
-    if (currentRating >= star - 0.5) leftHalf.classList.add('filled');
+    const starEl = document.createElement('span');
+    starEl.className = 'star-picker-star';
+    starEl.dataset.value = star;
+    starEl.textContent = '\u2605';
+    if (currentRating >= star) starEl.classList.add('filled');
+    else if (currentRating >= star - 0.5) starEl.classList.add('half');
 
-    const rightHalf = document.createElement('span');
-    rightHalf.className = 'star-picker-half';
-    rightHalf.dataset.value = star;
-    rightHalf.textContent = '\u2605';
-    if (currentRating >= star) rightHalf.classList.add('filled');
+    starEl.setAttribute('role', 'slider');
+    starEl.setAttribute('aria-label', `Nota ${star} de 5`);
+    starEl.setAttribute('aria-valuemin', '0.5');
+    starEl.setAttribute('aria-valuemax', '5');
+    starEl.setAttribute('aria-valuenow', currentRating.toString());
+    starEl.setAttribute('tabindex', '0');
 
-    [leftHalf, rightHalf].forEach(half => {
-      half.setAttribute('role', 'button');
-      half.setAttribute('tabindex', '0');
-      half.setAttribute('aria-label', `Nota ${half.dataset.value} de 5`);
-      half.addEventListener('mouseenter', () => highlightStars(parseFloat(half.dataset.value)));
-      half.addEventListener('mouseleave', () => highlightStars(writeState.rating));
-      half.addEventListener('click', () => {
-        writeState.rating = parseFloat(half.dataset.value);
+    starEl.addEventListener('mouseenter', () => highlightStars(star));
+    starEl.addEventListener('mouseleave', () => highlightStars(writeState.rating));
+    starEl.addEventListener('click', (e) => {
+      const rect = starEl.getBoundingClientRect();
+      const isLeftHalf = e.clientX - rect.left < rect.width / 2;
+      const value = isLeftHalf ? star - 0.5 : star;
+      writeState.rating = value;
+      highlightStars(value);
+      starEl.setAttribute('aria-valuenow', value.toString());
+      document.getElementById('star-display-label').textContent = `${value} \u2605`;
+      document.querySelectorAll('.wm-error').forEach(el => el.remove());
+      validateWriteForm();
+    });
+    starEl.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' && writeState.rating < 5) {
+        e.preventDefault();
+        writeState.rating = Math.min(5, writeState.rating + 0.5);
         highlightStars(writeState.rating);
+        starEl.setAttribute('aria-valuenow', writeState.rating.toString());
         document.getElementById('star-display-label').textContent = `${writeState.rating} \u2605`;
-        document.querySelectorAll('.wm-error').forEach(el => el.remove());
         validateWriteForm();
-      });
+      } else if (e.key === 'ArrowLeft' && writeState.rating > 0.5) {
+        e.preventDefault();
+        writeState.rating = Math.max(0.5, writeState.rating - 0.5);
+        highlightStars(writeState.rating);
+        starEl.setAttribute('aria-valuenow', writeState.rating.toString());
+        document.getElementById('star-display-label').textContent = `${writeState.rating} \u2605`;
+        validateWriteForm();
+      }
     });
 
-    picker.appendChild(leftHalf);
-    picker.appendChild(rightHalf);
+    picker.appendChild(starEl);
   }
 }
 
 function highlightStars(rating) {
-  document.querySelectorAll('.star-picker-half').forEach(h => {
-    h.classList.toggle('filled', parseFloat(h.dataset.value) <= rating);
+  document.querySelectorAll('.star-picker-star').forEach(starEl => {
+    const value = parseFloat(starEl.dataset.value);
+    starEl.classList.toggle('filled', value <= rating);
+    starEl.classList.toggle('half', !starEl.classList.contains('filled') && value - 0.5 <= rating);
   });
 }
 
