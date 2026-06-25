@@ -760,10 +760,7 @@ function initEventDelegation() {
         toggleReviewReaction(reviewId, user.id, 'upvote').then(async (liked) => {
           showToast(liked ? 'Curtiu!' : 'Descurtiu');
           const reviews = await loadReviews();
-          const filtered = activeGenre
-            ? reviews.filter(r => r.genre === activeGenre || r.games?.genres?.some(g => g.name === activeGenre))
-            : reviews;
-          renderReviews('review-list', filtered, !!activeGenre);
+          renderReviews('review-list', reviews);
           renderTrending();
           const modal = document.getElementById('review-modal-overlay');
           if (modal && modal.classList.contains('is-open')) {
