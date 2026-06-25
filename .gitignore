@@ -19,3 +19,10 @@ skills-lock.json
 # Env
 .env
 .env.local
+
+# Python
+*.py
+__pycache__/
+
+# Screenshots (debug)
+*.png

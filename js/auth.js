@@ -59,25 +59,6 @@ export async function initAuth() {
     notifyAuthChange();
   });
 }
-    } else {
-      currentUser = null;
-      currentProfile = null;
-    }
-    notifyAuthChange();
-  });
-}
-
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    if (session?.user) {
-      currentUser = session.user;
-      currentProfile = await getProfile(currentUser.id);
-    } else {
-      currentUser = null;
-      currentProfile = null;
-    }
-    if (authStateCallback) authStateCallback();
-  });
-}
 
 export async function signIn(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });

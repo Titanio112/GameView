@@ -234,11 +234,11 @@
       <div class="auth-panel is-active" id="auth-panel-login">
         <div class="form-group">
           <label class="form-label">E-mail</label>
-          <input type="email" class="form-input" placeholder="seu@email.com">
+          <input type="email" class="form-input" placeholder="seu@email.com" autocomplete="email" onfocus="this.select()">
         </div>
         <div class="form-group">
           <label class="form-label">Senha</label>
-          <input type="password" class="form-input" placeholder="••••••••">
+          <input type="password" class="form-input" placeholder="••••••••" autocomplete="current-password">
         </div>
         <span class="forgot-link" data-auth-tab="forgot">Esqueceu a senha?</span>
         <button class="btn-auth-primary" id="btn-simulate-login">Entrar</button>
@@ -250,17 +250,20 @@
       <div class="auth-panel" id="auth-panel-register">
         <div class="form-group">
           <label class="form-label">Nome de usuário</label>
-          <input type="text" class="form-input" placeholder="seunome">
+          <input type="text" class="form-input" placeholder="seunome" autocomplete="username">
         </div>
         <div class="form-group">
           <label class="form-label">E-mail</label>
-          <input type="email" class="form-input" placeholder="seu@email.com">
+          <input type="email" class="form-input" placeholder="seu@email.com" autocomplete="email" onfocus="this.select()">
         </div>
         <div class="form-group">
           <label class="form-label">Senha</label>
-          <input type="password" class="form-input" placeholder="••••••••">
+          <input type="password" class="form-input" placeholder="••••••••" autocomplete="new-password">
         </div>
         <button class="btn-auth-primary" id="btn-register">Criar Conta</button>
+        <p class="auth-switch-link" style="text-align:center;margin-top:12px;font-size:.82rem;color:var(--text-3)">
+          Já tem conta? <span data-auth-tab="login" style="color:var(--purple-300);cursor:pointer;font-weight:600">Entrar</span>
+        </p>
       </div>
 
       <div class="auth-panel" id="auth-panel-forgot">
@@ -269,7 +272,7 @@
         </p>
         <div class="form-group">
           <label class="form-label">E-mail</label>
-          <input type="email" class="form-input" placeholder="seu@email.com">
+          <input type="email" class="form-input" placeholder="seu@email.com" autocomplete="email" onfocus="this.select()">
         </div>
         <button class="btn-auth-primary" id="btn-forgot-password">Enviar Link de Recuperação</button>
       </div>

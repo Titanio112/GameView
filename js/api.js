@@ -2,16 +2,11 @@ import { supabase } from './config.js';
 
 const EDGE_FUNCTION_URL = `${supabase.supabaseUrl}/functions/v1/rawg-proxy`;
 
-interface RawgError extends Error {
-  status?: number;
-  data?: unknown;
-}
-
-async function sleep(ms: number) {
+async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function rawgApiGet(endpoint: string, params: Record<string, string> = {}, retries = 2): Promise<unknown> {
+async function rawgApiGet(endpoint, params = {}, retries = 2) {
   const cacheKey = `${endpoint}:${JSON.stringify(params)}`;
 
   const cached = await getCachedGameData('rawg', cacheKey);
@@ -33,7 +28,7 @@ async function rawgApiGet(endpoint: string, params: Record<string, string> = {},
       const data = await res.json();
 
       if (!res.ok) {
-        const err: RawgError = new Error(data?.error || `RAWG API error: ${res.status}`);
+        const err = new Error(data?.error || `RAWG API error: ${res.status}`);
         err.status = res.status;
         err.data = data;
         throw err;
@@ -42,7 +37,7 @@ async function rawgApiGet(endpoint: string, params: Record<string, string> = {},
       await setCachedGameData('rawg', cacheKey, data);
       return data;
     } catch (e) {
-      const err = e as RawgError;
+      const err = e;
       const isRateLimited = err.status === 429;
       const isServerError = (err.status && err.status >= 500) || !err.status;
 
@@ -73,7 +68,7 @@ export const fetchFeaturedGames = async () => {
       metacritic: '85,100',
       dates: `2015-01-01,${currentYear()}-12-31`,
     });
-    return (data as { results?: unknown[] })?.results || [];
+    return data?.results || [];
   } catch {
     return [];
   }
@@ -86,7 +81,7 @@ export const fetchPopularGames = async () => {
       page_size: '18',
       dates: `2018-01-01,${currentYear()}-12-31`,
     });
-    return (data as { results?: unknown[] })?.results || [];
+    return data?.results || [];
   } catch {
     return [];
   }
@@ -101,13 +96,13 @@ export const fetchNewReleases = async () => {
       page_size: '18',
       dates: `${from},${to}`,
     });
-    return (data as { results?: unknown[] })?.results || [];
+    return data?.results || [];
   } catch {
     return [];
   }
 };
 
-export async function fetchGameDetails(id: string | number) {
+export async function fetchGameDetails(id) {
   try {
     return await rawgApiGet(`games/${id}`);
   } catch {
@@ -115,7 +110,7 @@ export async function fetchGameDetails(id: string | number) {
   }
 }
 
-export async function fetchPublisher(id: string | number) {
+export async function fetchPublisher(id) {
   try {
     return await rawgApiGet(`publishers/${id}`);
   } catch {
@@ -123,26 +118,26 @@ export async function fetchPublisher(id: string | number) {
   }
 }
 
-export const fetchPublisherGames = async (id: string | number) => {
+export const fetchPublisherGames = async (id) => {
   try {
     const data = await rawgApiGet('games', { publishers: String(id), page_size: '20' });
-    return (data as { results?: unknown[] })?.results || [];
+    return data?.results || [];
   } catch {
     return [];
   }
 };
 
-export const searchAPI = async (q: string) => {
+export const searchAPI = async (q) => {
   if (!q.trim()) return [];
   try {
     const data = await rawgApiGet('games', { search: q, page_size: '7' }, 1);
-    return (data as { results?: unknown[] })?.results || [];
+    return data?.results || [];
   } catch {
     return [];
   }
 };
 
-export async function supabaseQuery(table: string, { select = '*', filters = {}, order = null, limit = null } = {}) {
+export async function supabaseQuery(table, { select = '*', filters = {}, order = null, limit = null } = {}) {
   let query = supabase.from(table).select(select);
   for (const [key, value] of Object.entries(filters)) {
     if (value !== null && value !== undefined) {
@@ -156,7 +151,7 @@ export async function supabaseQuery(table: string, { select = '*', filters = {},
   return data || [];
 }
 
-export async function getCachedGameData(source: string, externalId: string) {
+export async function getCachedGameData(source, externalId) {
   const { data } = await supabase
     .from('api_cache')
     .select('raw_data, fetched_at')
@@ -167,7 +162,7 @@ export async function getCachedGameData(source: string, externalId: string) {
   return data?.raw_data || null;
 }
 
-export async function setCachedGameData(source: string, externalId: string, rawData: unknown) {
+export async function setCachedGameData(source, externalId, rawData) {
   await supabase.from('api_cache').upsert({
     source,
     external_id: String(externalId),
@@ -177,7 +172,7 @@ export async function setCachedGameData(source: string, externalId: string, rawD
   }, { onConflict: 'source,external_id' });
 }
 
-export async function getGameByRawgId(rawgId: string | number) {
+export async function getGameByRawgId(rawgId) {
   const { data } = await supabase
     .from('games')
     .select('*')
@@ -186,7 +181,7 @@ export async function getGameByRawgId(rawgId: string | number) {
   return data;
 }
 
-export async function upsertGame(gameData: Record<string, unknown>) {
+export async function upsertGame(gameData) {
   const { data, error } = await supabase
     .from('games')
     .upsert(gameData, { onConflict: 'rawg_id' })
@@ -196,7 +191,7 @@ export async function upsertGame(gameData: Record<string, unknown>) {
   return data;
 }
 
-export async function getProfile(userId: string) {
+export async function getProfile(userId) {
   const { data } = await supabase
     .from('profiles')
     .select('*')
@@ -205,7 +200,7 @@ export async function getProfile(userId: string) {
   return data;
 }
 
-export async function upsertProfile(profileData: Record<string, unknown>) {
+export async function upsertProfile(profileData) {
   const { data, error } = await supabase
     .from('profiles')
     .upsert(profileData, { onConflict: 'id' })
@@ -231,7 +226,7 @@ export async function getReviews({ gameId = null, userId = null, limit = 20, off
   return data || [];
 }
 
-export async function createReview(reviewData: Record<string, unknown>) {
+export async function createReview(reviewData) {
   const { data, error } = await supabase
     .from('reviews')
     .insert(reviewData)
@@ -241,7 +236,7 @@ export async function createReview(reviewData: Record<string, unknown>) {
   return data;
 }
 
-export async function toggleReviewReaction(reviewId: string, userId: string, reaction: string) {
+export async function toggleReviewReaction(reviewId, userId, reaction) {
   const { data: existing } = await supabase
     .from('review_reactions')
     .select('id')
@@ -259,7 +254,7 @@ export async function toggleReviewReaction(reviewId: string, userId: string, rea
   }
 }
 
-export async function getComments(reviewId: string) {
+export async function getComments(reviewId) {
   const { data } = await supabase
     .from('comments')
     .select('*, profiles:user_id(username, display_name, avatar_url)')
@@ -269,7 +264,7 @@ export async function getComments(reviewId: string) {
   return data || [];
 }
 
-export async function createComment(commentData: Record<string, unknown>) {
+export async function createComment(commentData) {
   const { data, error } = await supabase
     .from('comments')
     .insert(commentData)
@@ -279,14 +274,14 @@ export async function createComment(commentData: Record<string, unknown>) {
   return data;
 }
 
-export async function followUser(followerId: string, followingId: string) {
+export async function followUser(followerId, followingId) {
   const { error } = await supabase
     .from('follows')
     .insert({ follower_id: followerId, following_id: followingId });
   return !error;
 }
 
-export async function unfollowUser(followerId: string, followingId: string) {
+export async function unfollowUser(followerId, followingId) {
   const { error } = await supabase
     .from('follows')
     .delete()
@@ -295,7 +290,7 @@ export async function unfollowUser(followerId: string, followingId: string) {
   return !error;
 }
 
-export async function isFollowing(followerId: string, followingId: string) {
+export async function isFollowing(followerId, followingId) {
   const { data } = await supabase
     .from('follows')
     .select('id')
@@ -321,7 +316,7 @@ export async function getLfgPosts({ gameId = null, limit = 20 } = {}) {
   return data || [];
 }
 
-export async function getUserLibrary(userId: string) {
+export async function getUserLibrary(userId) {
   const { data } = await supabase
     .from('user_library')
     .select('*, games:game_id(title, cover_url, release_date)')
@@ -330,7 +325,7 @@ export async function getUserLibrary(userId: string) {
   return data || [];
 }
 
-export async function addToLibrary(libraryData: Record<string, unknown>) {
+export async function addToLibrary(libraryData) {
   const { data, error } = await supabase
     .from('user_library')
     .upsert(libraryData, { onConflict: 'user_id,game_id' })
@@ -340,7 +335,7 @@ export async function addToLibrary(libraryData: Record<string, unknown>) {
   return data;
 }
 
-export async function getNotifications(userId: string, { unreadOnly = false, limit = 20 } = {}) {
+export async function getNotifications(userId, { unreadOnly = false, limit = 20 } = {}) {
   let query = supabase
     .from('notifications')
     .select('*, actor:actor_id(username, avatar_url)')
@@ -355,7 +350,7 @@ export async function getNotifications(userId: string, { unreadOnly = false, lim
   return data || [];
 }
 
-export async function markNotificationsRead(userId: string) {
+export async function markNotificationsRead(userId) {
   await supabase
     .from('notifications')
     .update({ read: true })

@@ -1,8 +1,8 @@
-import { initAuth, getCurrentUser, getCurrentProfile, signIn, signUp, signOut, resetPassword, requireAuth, onAuthStateChange } from './auth.js';
-import { fetchFeaturedGames, fetchPopularGames, fetchNewReleases, fetchGameDetails, fetchPublisher, fetchPublisherGames, searchAPI } from './api.js';
+import { initAuth, getCurrentUser, getCurrentProfile, signIn, signUp, signOut, resetPassword, requireAuth, onAuthChange } from './auth.js';
+import { fetchFeaturedGames, fetchPopularGames, fetchNewReleases, fetchGameDetails, fetchPublisher, fetchPublisherGames, searchAPI, getReviews } from './api.js';
 import { showPage, openModal, closeModal, skeletons, showToast, formatDate } from './ui.js';
 import { initCarousel, goSlide, resetCarouselTimer, scrollShowcase, makeGameCard } from './games.js';
-import { makeReviewCard, renderReviews, renderTagCloud, renderTrending, filterGenre, openReview, initWriteReview, postComment, loadReviews, loadGenres, getReviews } from './reviews.js';
+import { makeReviewCard, renderReviews, renderTagCloud, renderTrending, filterGenre, openReview, initWriteReview, postComment, loadReviews, loadGenres } from './reviews.js';
 import { getUserLibrary } from './api.js';
 import { loadNotifications, markAllRead, renderNotificationBadge } from './notifications.js';
 import { supabase } from './config.js';
@@ -348,7 +348,7 @@ function renderProfile() {
   loadProfileReviews(user.id);
 }
 
-async function loadProfileFavorites(userId: string) {
+async function loadProfileFavorites(userId) {
   const favRow = document.getElementById('favs-row');
   if (!favRow) return;
   favRow.innerHTML = '<div class="skeleton" style="width:88px;height:118px;border-radius:6px"></div>'.repeat(4);
@@ -380,7 +380,7 @@ async function loadProfileFavorites(userId: string) {
   }
 }
 
-async function loadProfileReviews(userId: string) {
+async function loadProfileReviews(userId) {
   const reviewList = document.getElementById('profile-review-list');
   if (!reviewList) return;
   reviewList.innerHTML = '<div class="skeleton" style="height:120px;margin-bottom:16px;border-radius:6px"></div>'.repeat(3);
@@ -710,11 +710,6 @@ function initEventDelegation() {
       if (action === 'remove-favorite') {
         removeFavoriteGame(target.dataset.gameId);
       }
-    }
-
-    const dropdown = document.getElementById('user-dropdown');
-    if (dropdown && !e.target.closest('#user-chip-toggle') && !e.target.closest('#user-dropdown')) {
-      dropdown.classList.remove('open');
     }
   });
 

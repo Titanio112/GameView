@@ -39,7 +39,7 @@ export function makeCarouselSlide(game) {
   el.innerHTML = `
     <div class="carousel-slide-skeleton"></div>
     <img src="${imgUrl(game)}" alt="${game.name}" loading="lazy" class="carousel-slide-img"
-      onload="this.classList.add('loaded');this.previousElementSibling.remove()">
+      onload="this.classList.add('loaded');const skeleton=this.previousElementSibling;if(skeleton)skeleton.remove()">
     <div class="c-fade-bottom"></div>
     <div class="c-fade-left"></div>
     <div class="c-info">
