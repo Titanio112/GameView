@@ -356,17 +356,45 @@ async function publishReview() {
   }
   if (hasError) return;
 
-  const reviewData = {
-    user_id: user.id,
-    game_id: game.id,
-    game_title: game.name,
-    score: rating * 2,
-    body: text,
-    recommended: true,
-    created_at: new Date().toISOString(),
-  };
-
   try {
+    const { supabase } = await import('./config.js');
+
+    let { data: dbGame } = await supabase
+      .from('games')
+      .select('id')
+      .eq('rawg_id', game.id)
+      .single();
+
+    if (!dbGame) {
+      const { data: newGame } = await supabase
+        .from('games')
+        .insert({
+          rawg_id: game.id,
+          title: game.name,
+          slug: game.slug || game.name.toLowerCase().replace(/\s+/g, '-'),
+          cover_url: game.background_image || game.cover_url || null,
+          release_date: game.released || null,
+          metacritic_score: game.metacritic || null,
+        })
+        .select('id')
+        .single();
+      dbGame = newGame;
+    }
+
+    if (!dbGame) {
+      showToast('Erro ao registrar o jogo. Tente novamente.');
+      return;
+    }
+
+    const reviewData = {
+      user_id: user.id,
+      game_id: dbGame.id,
+      title: game.name,
+      score: rating * 2,
+      body: text,
+      recommended: 'yes',
+    };
+
     await createReview(reviewData);
     closeModal('write-review-modal-overlay');
     showToast('Resenha publicada!');
