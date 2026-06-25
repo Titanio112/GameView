@@ -13,6 +13,9 @@ Desktop.ini
 skills-lock.json
 .agents/
 
+# Project Memory (local context, not for GitHub)
+PROJECT_MEMORY.md
+
 # Logs
 *.log
 
