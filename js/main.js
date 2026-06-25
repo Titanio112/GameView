@@ -569,6 +569,25 @@ function initAuthHandlers() {
       showToast('Erro ao conectar com Google: ' + (err.message || 'tente novamente'));
     }
   });
+
+  document.getElementById('btn-google-register')?.addEventListener('click', async () => {
+    try {
+      const { supabase } = await import('./config.js');
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+      if (error) throw error;
+    } catch (err) {
+      showToast('Erro ao conectar com Google: ' + (err.message || 'tente novamente'));
+    }
+  });
 }
 
 function initEditProfile() {
