@@ -551,13 +551,15 @@ function initAuthHandlers() {
     btn.addEventListener('click', () => switchAuthTab(btn.dataset.authTab));
   });
 
+  const PROD_URL = 'https://titanio112.github.io/GameView';
+
   document.getElementById('btn-google-login')?.addEventListener('click', async () => {
     try {
       const { supabase } = await import('./config.js');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: PROD_URL,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -576,7 +578,7 @@ function initAuthHandlers() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: PROD_URL,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

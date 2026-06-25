@@ -167,7 +167,7 @@ export async function signOut() {
 
 export async function resetPassword(email) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin,
+    redirectTo: 'https://titanio112.github.io/GameView',
   });
   if (error) throw error;
 }
