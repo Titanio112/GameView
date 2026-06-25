@@ -2,7 +2,7 @@ import { initAuth, getCurrentUser, getCurrentProfile, signIn, signUp, signOut, r
 import { fetchFeaturedGames, fetchPopularGames, fetchNewReleases, fetchGameDetails, fetchPublisher, fetchPublisherGames, searchAPI } from './api.js';
 import { showPage, openModal, closeModal, skeletons, showToast, formatDate } from './ui.js';
 import { initCarousel, goSlide, resetCarouselTimer, scrollShowcase, makeGameCard } from './games.js';
-import { makeReviewCard, renderReviews, renderTagCloud, renderTrending, filterGenre, openReview, initWriteReview, postComment, loadReviews, loadGenres } from './reviews.js';
+import { makeReviewCard, renderReviews, renderTagCloud, renderTrending, filterGenre, openReview, initWriteReview, postComment, loadReviews, loadGenres, getReviews } from './reviews.js';
 import { getUserLibrary } from './api.js';
 import { loadNotifications, markAllRead, renderNotificationBadge } from './notifications.js';
 import { supabase } from './config.js';
@@ -129,6 +129,7 @@ function setNavActive(nav) {
 }
 
 async function goHome() {
+  if (window.location.hash !== '') history.replaceState(null, '', '#');
   currentPage = 'home';
   showPage('page-home');
   setNavActive('home');
@@ -163,6 +164,7 @@ async function goHome() {
 }
 
 async function goGame(gameId) {
+  history.replaceState(null, '', `#game/${gameId}`);
   currentPage = 'game';
   showPage('page-game');
   setNavActive(null);
@@ -225,6 +227,7 @@ async function goGame(gameId) {
 }
 
 async function goPublisher(id) {
+  history.replaceState(null, '', `#publisher/${id}`);
   currentPage = 'publisher';
   showPage('page-publisher');
   setNavActive(null);
@@ -257,6 +260,7 @@ async function goPublisher(id) {
 
 function goProfile() {
   if (!requireAuth()) return openModal('auth-modal-overlay');
+  history.replaceState(null, '', '#profile');
   currentPage = 'profile';
   showPage('page-profile');
   setNavActive(null);
@@ -301,6 +305,7 @@ async function openEditProfileModal() {
 }
 
 async function goBrowse(type) {
+  history.replaceState(null, '', `#browse/${type}`);
   currentPage = 'browse';
   showPage('page-browse');
   setNavActive(null);
@@ -322,7 +327,8 @@ async function goBrowse(type) {
 
 function renderProfile() {
   const profile = getCurrentProfile();
-  if (!profile) return;
+  const user = getCurrentUser();
+  if (!profile || !user) return;
 
   document.getElementById('profile-header').innerHTML = `
     <div class="profile-avatar">
@@ -337,6 +343,59 @@ function renderProfile() {
       </div>
     </div>
   `;
+
+  loadProfileFavorites(user.id);
+  loadProfileReviews(user.id);
+}
+
+async function loadProfileFavorites(userId: string) {
+  const favRow = document.getElementById('favs-row');
+  if (!favRow) return;
+  favRow.innerHTML = '<div class="skeleton" style="width:88px;height:118px;border-radius:6px"></div>'.repeat(4);
+
+  try {
+    const library = await getUserLibrary(userId);
+    const favGames = library.filter(item => item.status === 'favorite').slice(0, 4);
+
+    favRow.innerHTML = '';
+    if (favGames.length === 0) {
+      favRow.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:20px"><strong>Nenhum jogo favorito</strong><br><span style="font-size:.8rem;color:var(--text-3)">Adicione favoritos nas configurações</span></div>';
+      return;
+    }
+
+    favGames.forEach(item => {
+      const game = item.games;
+      const el = document.createElement('div');
+      el.className = 'fav-item';
+      el.innerHTML = `
+        <div class="fav-cover">
+          <img src="${game?.cover_url || ''}" alt="${game?.title || ''}">
+        </div>
+        <div class="fav-title">${game?.title || ''}</div>
+      `;
+      favRow.appendChild(el);
+    });
+  } catch {
+    favRow.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:20px;color:#e84448">Erro ao carregar favoritos</div>';
+  }
+}
+
+async function loadProfileReviews(userId: string) {
+  const reviewList = document.getElementById('profile-review-list');
+  if (!reviewList) return;
+  reviewList.innerHTML = '<div class="skeleton" style="height:120px;margin-bottom:16px;border-radius:6px"></div>'.repeat(3);
+
+  try {
+    const reviews = await getReviews({ userId, limit: 10 });
+    if (!reviews.length) {
+      reviewList.innerHTML = '<div class="empty-state"><strong>Nenhuma resenha publicada</strong><br><span style="font-size:.8rem;color:var(--text-3)">Suas resenhas aparecerão aqui</span></div>';
+      return;
+    }
+    reviewList.innerHTML = '';
+    reviews.forEach(rv => reviewList.appendChild(makeReviewCard(rv)));
+  } catch {
+    reviewList.innerHTML = '<div class="empty-state" style="color:#e84448">Erro ao carregar resenhas</div>';
+  }
 }
 
 // Search
@@ -700,6 +759,27 @@ function initEventDelegation() {
   });
 }
 
+function handleRoute() {
+  const hash = window.location.hash.slice(1);
+  if (hash === 'profile') {
+    goProfile();
+  } else if (hash.startsWith('game/')) {
+    const gameId = hash.split('/')[1];
+    goGame(gameId);
+  } else if (hash.startsWith('publisher/')) {
+    const pubId = hash.split('/')[1];
+    goPublisher(pubId);
+  } else if (hash.startsWith('browse/')) {
+    const type = hash.split('/')[1];
+    goBrowse(type);
+  } else {
+    goHome();
+  }
+}
+
+window.addEventListener('hashchange', handleRoute);
+window.addEventListener('load', handleRoute);
+
 // Init
 async function init() {
   try {
@@ -714,7 +794,6 @@ async function init() {
   initAuthHandlers();
   initWriteReview();
   initEditProfile();
-  await goHome();
 }
 
 init();

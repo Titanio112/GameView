@@ -59,6 +59,13 @@ export async function initAuth() {
     notifyAuthChange();
   });
 }
+    } else {
+      currentUser = null;
+      currentProfile = null;
+    }
+    notifyAuthChange();
+  });
+}
 
   supabase.auth.onAuthStateChange(async (event, session) => {
     if (session?.user) {

@@ -1,53 +1,148 @@
-import { supabase, RAWG_CONFIG } from './config.js';
+import { supabase } from './config.js';
 
-// RAWG API
-export async function rawgApiGet(endpoint, params = {}) {
-  const url = new URL(`${RAWG_CONFIG.baseUrl}/${endpoint}`);
-  url.searchParams.set('key', RAWG_CONFIG.apiKey);
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+const EDGE_FUNCTION_URL = `${supabase.supabaseUrl}/functions/v1/rawg-proxy`;
+
+interface RawgError extends Error {
+  status?: number;
+  data?: unknown;
+}
+
+async function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function rawgApiGet(endpoint: string, params: Record<string, string> = {}, retries = 2): Promise<unknown> {
+  const cacheKey = `${endpoint}:${JSON.stringify(params)}`;
+
+  const cached = await getCachedGameData('rawg', cacheKey);
+  if (cached) return cached;
+
+  const body = JSON.stringify({ endpoint, params });
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(EDGE_FUNCTION_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.supabaseKey}`,
+        },
+        body,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        const err: RawgError = new Error(data?.error || `RAWG API error: ${res.status}`);
+        err.status = res.status;
+        err.data = data;
+        throw err;
+      }
+
+      await setCachedGameData('rawg', cacheKey, data);
+      return data;
+    } catch (e) {
+      const err = e as RawgError;
+      const isRateLimited = err.status === 429;
+      const isServerError = (err.status && err.status >= 500) || !err.status;
+
+      if ((isRateLimited || isServerError) && attempt < retries) {
+        const delay = isRateLimited ? 1000 * (attempt + 1) : 500 * Math.pow(2, attempt);
+        console.warn(`RAWG API ${err.status || 'network'} error, retrying in ${delay}ms (attempt ${attempt + 1}/${retries})`);
+        await sleep(delay);
+        continue;
+      }
+
+      console.error('RAWG API error:', endpoint, err);
+      throw err;
+    }
+  }
+
+  throw new Error('RAWG API: max retries exceeded');
+}
+
+function currentYear() {
+  return new Date().getFullYear();
+}
+
+export const fetchFeaturedGames = async () => {
   try {
-    const res = await fetch(url.toString());
-    if (!res.ok) throw new Error(res.status);
-    return await res.json();
-  } catch (e) {
-    console.warn('RAWG API error:', endpoint, e);
+    const data = await rawgApiGet('games', {
+      ordering: '-rating',
+      page_size: '6',
+      metacritic: '85,100',
+      dates: `2015-01-01,${currentYear()}-12-31`,
+    });
+    return (data as { results?: unknown[] })?.results || [];
+  } catch {
+    return [];
+  }
+};
+
+export const fetchPopularGames = async () => {
+  try {
+    const data = await rawgApiGet('games', {
+      ordering: '-added',
+      page_size: '18',
+      dates: `2018-01-01,${currentYear()}-12-31`,
+    });
+    return (data as { results?: unknown[] })?.results || [];
+  } catch {
+    return [];
+  }
+};
+
+export const fetchNewReleases = async () => {
+  try {
+    const to = new Date().toISOString().split('T')[0];
+    const from = new Date(Date.now() - 180 * 86400000).toISOString().split('T')[0];
+    const data = await rawgApiGet('games', {
+      ordering: '-released',
+      page_size: '18',
+      dates: `${from},${to}`,
+    });
+    return (data as { results?: unknown[] })?.results || [];
+  } catch {
+    return [];
+  }
+};
+
+export async function fetchGameDetails(id: string | number) {
+  try {
+    return await rawgApiGet(`games/${id}`);
+  } catch {
     return null;
   }
 }
 
-export const fetchFeaturedGames = () =>
-  rawgApiGet('games', { ordering: '-rating', page_size: 6, metacritic: '85,100', dates: '2015-01-01,2025-12-31' })
-    .then(d => d?.results || []);
+export async function fetchPublisher(id: string | number) {
+  try {
+    return await rawgApiGet(`publishers/${id}`);
+  } catch {
+    return null;
+  }
+}
 
-export const fetchPopularGames = () =>
-  rawgApiGet('games', { ordering: '-added', page_size: 18, dates: '2018-01-01,2025-12-31' })
-    .then(d => d?.results || []);
-
-export const fetchNewReleases = () => {
-  const to = new Date().toISOString().split('T')[0];
-  const from = new Date(Date.now() - 180 * 86400000).toISOString().split('T')[0];
-  return rawgApiGet('games', { ordering: '-released', page_size: 18, dates: `${from},${to}` })
-    .then(d => d?.results || []);
+export const fetchPublisherGames = async (id: string | number) => {
+  try {
+    const data = await rawgApiGet('games', { publishers: String(id), page_size: '20' });
+    return (data as { results?: unknown[] })?.results || [];
+  } catch {
+    return [];
+  }
 };
 
-export async function fetchGameDetails(id) {
-  const d = await rawgApiGet(`games/${id}`);
-  return d;
-}
+export const searchAPI = async (q: string) => {
+  if (!q.trim()) return [];
+  try {
+    const data = await rawgApiGet('games', { search: q, page_size: '7' }, 1);
+    return (data as { results?: unknown[] })?.results || [];
+  } catch {
+    return [];
+  }
+};
 
-export async function fetchPublisher(id) {
-  const d = await rawgApiGet(`publishers/${id}`);
-  return d;
-}
-
-export const fetchPublisherGames = id =>
-  rawgApiGet('games', { publishers: id, page_size: 20 }).then(d => d?.results || []);
-
-export const searchAPI = q =>
-  rawgApiGet('games', { search: q, page_size: 7 }).then(d => d?.results || []);
-
-// Supabase helpers
-export async function supabaseQuery(table, { select = '*', filters = {}, order = null, limit = null } = {}) {
+export async function supabaseQuery(table: string, { select = '*', filters = {}, order = null, limit = null } = {}) {
   let query = supabase.from(table).select(select);
   for (const [key, value] of Object.entries(filters)) {
     if (value !== null && value !== undefined) {
@@ -61,8 +156,7 @@ export async function supabaseQuery(table, { select = '*', filters = {}, order =
   return data || [];
 }
 
-// API Cache
-export async function getCachedGameData(source, externalId) {
+export async function getCachedGameData(source: string, externalId: string) {
   const { data } = await supabase
     .from('api_cache')
     .select('raw_data, fetched_at')
@@ -73,7 +167,7 @@ export async function getCachedGameData(source, externalId) {
   return data?.raw_data || null;
 }
 
-export async function setCachedGameData(source, externalId, rawData) {
+export async function setCachedGameData(source: string, externalId: string, rawData: unknown) {
   await supabase.from('api_cache').upsert({
     source,
     external_id: String(externalId),
@@ -83,8 +177,7 @@ export async function setCachedGameData(source, externalId, rawData) {
   }, { onConflict: 'source,external_id' });
 }
 
-// Game operations
-export async function getGameByRawgId(rawgId) {
+export async function getGameByRawgId(rawgId: string | number) {
   const { data } = await supabase
     .from('games')
     .select('*')
@@ -93,7 +186,7 @@ export async function getGameByRawgId(rawgId) {
   return data;
 }
 
-export async function upsertGame(gameData) {
+export async function upsertGame(gameData: Record<string, unknown>) {
   const { data, error } = await supabase
     .from('games')
     .upsert(gameData, { onConflict: 'rawg_id' })
@@ -103,8 +196,7 @@ export async function upsertGame(gameData) {
   return data;
 }
 
-// Profile operations
-export async function getProfile(userId) {
+export async function getProfile(userId: string) {
   const { data } = await supabase
     .from('profiles')
     .select('*')
@@ -113,7 +205,7 @@ export async function getProfile(userId) {
   return data;
 }
 
-export async function upsertProfile(profileData) {
+export async function upsertProfile(profileData: Record<string, unknown>) {
   const { data, error } = await supabase
     .from('profiles')
     .upsert(profileData, { onConflict: 'id' })
@@ -123,7 +215,6 @@ export async function upsertProfile(profileData) {
   return data;
 }
 
-// Review operations
 export async function getReviews({ gameId = null, userId = null, limit = 20, offset = 0 } = {}) {
   let query = supabase
     .from('reviews')
@@ -140,7 +231,7 @@ export async function getReviews({ gameId = null, userId = null, limit = 20, off
   return data || [];
 }
 
-export async function createReview(reviewData) {
+export async function createReview(reviewData: Record<string, unknown>) {
   const { data, error } = await supabase
     .from('reviews')
     .insert(reviewData)
@@ -150,7 +241,7 @@ export async function createReview(reviewData) {
   return data;
 }
 
-export async function toggleReviewReaction(reviewId, userId, reaction) {
+export async function toggleReviewReaction(reviewId: string, userId: string, reaction: string) {
   const { data: existing } = await supabase
     .from('review_reactions')
     .select('id')
@@ -168,8 +259,7 @@ export async function toggleReviewReaction(reviewId, userId, reaction) {
   }
 }
 
-// Comments
-export async function getComments(reviewId) {
+export async function getComments(reviewId: string) {
   const { data } = await supabase
     .from('comments')
     .select('*, profiles:user_id(username, display_name, avatar_url)')
@@ -179,7 +269,7 @@ export async function getComments(reviewId) {
   return data || [];
 }
 
-export async function createComment(commentData) {
+export async function createComment(commentData: Record<string, unknown>) {
   const { data, error } = await supabase
     .from('comments')
     .insert(commentData)
@@ -189,15 +279,14 @@ export async function createComment(commentData) {
   return data;
 }
 
-// Follow system
-export async function followUser(followerId, followingId) {
+export async function followUser(followerId: string, followingId: string) {
   const { error } = await supabase
     .from('follows')
     .insert({ follower_id: followerId, following_id: followingId });
   return !error;
 }
 
-export async function unfollowUser(followerId, followingId) {
+export async function unfollowUser(followerId: string, followingId: string) {
   const { error } = await supabase
     .from('follows')
     .delete()
@@ -206,7 +295,7 @@ export async function unfollowUser(followerId, followingId) {
   return !error;
 }
 
-export async function isFollowing(followerId, followingId) {
+export async function isFollowing(followerId: string, followingId: string) {
   const { data } = await supabase
     .from('follows')
     .select('id')
@@ -216,7 +305,6 @@ export async function isFollowing(followerId, followingId) {
   return !!data;
 }
 
-// LFG
 export async function getLfgPosts({ gameId = null, limit = 20 } = {}) {
   let query = supabase
     .from('lfg_posts')
@@ -233,8 +321,7 @@ export async function getLfgPosts({ gameId = null, limit = 20 } = {}) {
   return data || [];
 }
 
-// Library
-export async function getUserLibrary(userId) {
+export async function getUserLibrary(userId: string) {
   const { data } = await supabase
     .from('user_library')
     .select('*, games:game_id(title, cover_url, release_date)')
@@ -243,7 +330,7 @@ export async function getUserLibrary(userId) {
   return data || [];
 }
 
-export async function addToLibrary(libraryData) {
+export async function addToLibrary(libraryData: Record<string, unknown>) {
   const { data, error } = await supabase
     .from('user_library')
     .upsert(libraryData, { onConflict: 'user_id,game_id' })
@@ -253,8 +340,7 @@ export async function addToLibrary(libraryData) {
   return data;
 }
 
-// Notifications
-export async function getNotifications(userId, { unreadOnly = false, limit = 20 } = {}) {
+export async function getNotifications(userId: string, { unreadOnly = false, limit = 20 } = {}) {
   let query = supabase
     .from('notifications')
     .select('*, actor:actor_id(username, avatar_url)')
@@ -269,7 +355,7 @@ export async function getNotifications(userId, { unreadOnly = false, limit = 20 
   return data || [];
 }
 
-export async function markNotificationsRead(userId) {
+export async function markNotificationsRead(userId: string) {
   await supabase
     .from('notifications')
     .update({ read: true })
