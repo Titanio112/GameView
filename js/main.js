@@ -1,5 +1,5 @@
 import { initAuth, getCurrentUser, getCurrentProfile, signIn, signUp, signOut, resetPassword, requireAuth, onAuthChange, uploadAvatar, checkUsernameExists } from './auth.js';
-import { fetchFeaturedGames, fetchPopularGames, fetchNewReleases, fetchGameDetails, fetchPublisher, fetchPublisherGames, searchAPI, getReviews } from './api.js';
+import { fetchFeaturedGames, fetchPopularGames, fetchNewReleases, fetchGameDetails, fetchPublisher, fetchPublisherGames, searchAPI, getReviews, toggleReviewReaction } from './api.js';
 import { showPage, openModal, closeModal, skeletons, showToast, formatDate } from './ui.js';
 import { initCarousel, goSlide, resetCarouselTimer, scrollShowcase, makeGameCard } from './games.js';
 import { makeReviewCard, renderReviews, renderTagCloud, renderTrending, filterGenre, openReview, initWriteReview, postComment, loadReviews, loadGenres } from './reviews.js';
@@ -752,6 +752,16 @@ function initEventDelegation() {
         signOut().then(() => {
           updateHeaderUser();
           showToast('Você saiu da sua conta.');
+        });
+      }
+      if (action === 'like-review') {
+        const user = getCurrentUser();
+        if (!user) { showToast('Faça login para curtir.'); return; }
+        const reviewId = target.dataset.reviewId;
+        toggleReviewReaction(reviewId, user.id, 'upvote').then(async (liked) => {
+          showToast(liked ? 'Curtiu!' : 'Descurtiu');
+          const reviews = await loadReviews();
+          renderReviews('review-list', reviews);
         });
       }
       if (action === 'post-comment') postComment(target.dataset.reviewId);
