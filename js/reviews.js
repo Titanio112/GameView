@@ -575,6 +575,9 @@ export async function postComment(id) {
     ta.value = '';
     cancelReply();
     showToast('Coment\u00e1rio publicado!');
+    const reviews = await loadReviews();
+    renderReviews('review-list', reviews);
+    renderTrending();
     openReview(id);
   }
 }
