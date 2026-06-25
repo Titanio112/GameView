@@ -67,6 +67,7 @@ export const fetchFeaturedGames = async () => {
       page_size: '6',
       metacritic: '85,100',
       dates: `2015-01-01,${currentYear()}-12-31`,
+      exclude_additions: 'true',
     });
     return data?.results || [];
   } catch {
@@ -80,6 +81,7 @@ export const fetchPopularGames = async () => {
       ordering: '-added',
       page_size: '18',
       dates: `2018-01-01,${currentYear()}-12-31`,
+      exclude_additions: 'true',
     });
     return data?.results || [];
   } catch {
@@ -95,6 +97,7 @@ export const fetchNewReleases = async () => {
       ordering: '-released',
       page_size: '18',
       dates: `${from},${to}`,
+      exclude_additions: 'true',
     });
     return data?.results || [];
   } catch {
