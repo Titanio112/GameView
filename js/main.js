@@ -281,7 +281,10 @@ function goProfile() {
 async function openEditProfileModal() {
   const profile = getCurrentProfile();
   const user = getCurrentUser();
-  if (!profile || !user) return;
+  if (!profile || !user) {
+    showToast('Faça login para acessar as configurações.');
+    return;
+  }
 
   document.getElementById('ep-avatar-preview-img').src = profile.avatar_url || '';
   document.getElementById('ep-avatar-url').value = profile.avatar_url || '';
@@ -728,6 +731,7 @@ function initEventDelegation() {
 
     const target = e.target.closest('[data-action]');
     if (target) {
+      if (dropdown) dropdown.classList.remove('open');
       const action = target.dataset.action;
 
       if (action === 'go-game') {
