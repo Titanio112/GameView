@@ -68,6 +68,14 @@ function updateHeaderUser() {
   if (user && profile) {
     const avatarUrl = profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`;
     el.innerHTML = `
+      <div class="notif-bell" id="notif-bell">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span class="notif-badge" id="notif-badge" style="display:none">0</span>
+      </div>
+      <div class="notif-dropdown" id="notif-dropdown"></div>
       <div class="user-chip" id="user-chip-toggle">
         <span class="user-chip-name">${profile.username}</span>
         <div class="user-chip-avatar">
@@ -93,9 +101,61 @@ function updateHeaderUser() {
     document.getElementById('user-chip-toggle')?.addEventListener('click', (e) => {
       e.stopPropagation();
       document.getElementById('user-dropdown')?.classList.toggle('open');
+      document.getElementById('notif-dropdown')?.classList.remove('open');
     });
+    document.getElementById('notif-bell')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.getElementById('user-dropdown')?.classList.remove('open');
+      document.getElementById('notif-dropdown')?.classList.toggle('open');
+    });
+    loadNotificationsUI(user.id);
   } else {
     el.innerHTML = `<button class="btn-enter" data-action="open-auth">Entrar</button>`;
+  }
+}
+
+async function loadNotificationsUI(userId) {
+  const { data: notifs } = await supabase
+    .from('notifications')
+    .select('*, actor:actor_id(username, avatar_url)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  const unread = notifs?.filter(n => !n.read) || [];
+  const badge = document.getElementById('notif-badge');
+  const dropdown = document.getElementById('notif-dropdown');
+
+  if (badge) {
+    if (unread.length > 0) {
+      badge.textContent = unread.length;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  if (dropdown) {
+    if (!notifs?.length) {
+      dropdown.innerHTML = '<div class="notif-empty">Nenhuma notifica\u00e7\u00e3o</div>';
+    } else {
+      dropdown.innerHTML = notifs.map(n => {
+        const icon = n.type === 'reply' ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>'
+          : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+        const text = n.type === 'reply'
+          ? `<strong>${n.actor?.username || 'Algu\u00e9m'}</strong> respondeu seu coment\u00e1rio`
+          : `<strong>${n.actor?.username || 'Algu\u00e9m'}</strong> comentou na sua resenha`;
+        return `<div class="notif-item${n.read ? '' : ' unread'}" data-notif-id="${n.id}">
+          <div class="notif-icon">${icon}</div>
+          <div class="notif-text">${text}</div>
+        </div>`;
+      }).join('') + `<button class="notif-mark-read" id="notif-mark-read">Marcar como lidas</button>`;
+    }
+
+    document.getElementById('notif-mark-read')?.addEventListener('click', async () => {
+      await supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false);
+      loadNotificationsUI(userId);
+    });
   }
 }
 
