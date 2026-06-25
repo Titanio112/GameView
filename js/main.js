@@ -1,4 +1,4 @@
-import { initAuth, getCurrentUser, getCurrentProfile, signIn, signUp, signOut, resetPassword, requireAuth, onAuthChange } from './auth.js';
+import { initAuth, getCurrentUser, getCurrentProfile, signIn, signUp, signOut, resetPassword, requireAuth, onAuthChange, uploadAvatar, checkUsernameExists } from './auth.js';
 import { fetchFeaturedGames, fetchPopularGames, fetchNewReleases, fetchGameDetails, fetchPublisher, fetchPublisherGames, searchAPI, getReviews } from './api.js';
 import { showPage, openModal, closeModal, skeletons, showToast, formatDate } from './ui.js';
 import { initCarousel, goSlide, resetCarouselTimer, scrollShowcase, makeGameCard } from './games.js';
@@ -15,25 +15,25 @@ const errorMessages = {
   'Invalid login credentials': 'E-mail ou senha incorretos.',
   'Email not confirmed': 'Confirme seu e-mail antes de fazer login.',
   'User already registered': 'Este e-mail já está cadastrado.',
-  'Password should be at least 6 characters': 'A senha deve ter pelo menos 6 caracteres.',
+  'Password should be at least 6 characters': 'A senha deve ter pelo menos 8 caracteres.',
   'Unable to validate email address': 'Digite um e-mail válido.',
   'User already exists': 'Este e-mail já está cadastrado.',
   'email address already registered': 'Este e-mail já está cadastrado.',
   'signup_disabled': 'Cadastro desativado no momento.',
-  'weak password': 'A senha é muito fraca. Use pelo menos 6 caracteres.',
+  'weak password': 'A senha é muito fraca. Use pelo menos 8 caracteres.',
   'invalid email': 'Digite um e-mail válido.',
   'network error': 'Erro de conexão. Verifique sua internet.',
   'Failed to fetch': 'Erro de conexão. Verifique sua internet.',
   'Unexpected error': 'Erro inesperado. Tente novamente.',
   'JWT expired': 'Sessão expirada. Faça login novamente.',
-  'User already registered': 'Este e-mail já está cadastrado.',
   'email already registered': 'Este e-mail já está cadastrado.',
   'email already exists': 'Este e-mail já está cadastrado.',
   'duplicate email': 'Este e-mail já está cadastrado.',
   'user already exists': 'Este e-mail já está cadastrado.',
   'email_exists': 'Este e-mail já está cadastrado.',
-  'User already exists': 'Este e-mail já está cadastrado.',
   'Email already in use': 'Este e-mail já está cadastrado.',
+  'já está em uso': 'Este nome de usuário já está em uso.',
+  'já está cadastrado': 'Este e-mail já está cadastrado.',
   'too_many_requests': 'Muitas tentativas. Aguarde um momento.',
   'rate limited': 'Muitas tentativas. Aguarde um momento.',
   'timeout': 'Tempo esgotado. Tente novamente.',

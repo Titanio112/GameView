@@ -68,7 +68,42 @@ export async function signIn(email, password) {
   return { user: currentUser, profile: currentProfile };
 }
 
+export async function checkUsernameExists(username) {
+  const { data } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('username', username)
+    .single();
+  return !!data;
+}
+
+export async function checkEmailExists(email) {
+  const { data } = await supabase
+    .from('profiles')
+    .select('id')
+    .ilike('username', email.split('@')[0])
+    .single();
+  if (data) return true;
+
+  try {
+    const { data: exists } = await supabase.rpc('check_email_exists', { check_email: email });
+    return !!exists;
+  } catch {
+    return false;
+  }
+}
+
 export async function signUp(email, password, username) {
+  const emailTaken = await checkEmailExists(email);
+  if (emailTaken) {
+    throw new Error('Este e-mail já está cadastrado.');
+  }
+
+  const usernameTaken = await checkUsernameExists(username);
+  if (usernameTaken) {
+    throw new Error('Este nome de usuário já está em uso.');
+  }
+
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) throw error;
 
@@ -82,6 +117,26 @@ export async function signUp(email, password, username) {
     });
   }
   return { user: currentUser, profile: currentProfile };
+}
+
+export async function uploadAvatar(file) {
+  const user = currentUser;
+  if (!user) throw new Error('Não autenticado');
+
+  const ext = file.name.split('.').pop();
+  const path = `${user.id}/avatar.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(path, file, { upsert: true });
+
+  if (uploadError) throw uploadError;
+
+  const { data: urlData } = supabase.storage
+    .from('avatars')
+    .getPublicUrl(path);
+
+  return urlData.publicUrl;
 }
 
 export async function signOut() {
