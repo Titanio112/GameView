@@ -287,7 +287,6 @@ async function openEditProfileModal() {
   }
 
   document.getElementById('ep-avatar-preview-img').src = profile.avatar_url || '';
-  document.getElementById('ep-avatar-url').value = profile.avatar_url || '';
   document.getElementById('ep-display-name').value = profile.display_name || '';
   document.getElementById('ep-pronouns').value = profile.pronouns || 'ele/dele';
   document.getElementById('ep-bio').value = profile.bio || '';
@@ -761,7 +760,15 @@ function initEventDelegation() {
         toggleReviewReaction(reviewId, user.id, 'upvote').then(async (liked) => {
           showToast(liked ? 'Curtiu!' : 'Descurtiu');
           const reviews = await loadReviews();
-          renderReviews('review-list', reviews);
+          const filtered = activeGenre
+            ? reviews.filter(r => r.genre === activeGenre || r.games?.genres?.some(g => g.name === activeGenre))
+            : reviews;
+          renderReviews('review-list', filtered, !!activeGenre);
+          renderTrending();
+          const modal = document.getElementById('review-modal-overlay');
+          if (modal && modal.classList.contains('is-open')) {
+            openReview(reviewId);
+          }
         });
       }
       if (action === 'post-comment') postComment(target.dataset.reviewId);
