@@ -48,6 +48,16 @@ function translateError(message) {
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function isWeakPassword(pw) {
+  if (pw.length < 8) return 'A senha deve ter pelo menos 8 caracteres.';
+  if (/^(.)\1+$/.test(pw)) return 'A senha não pode ter apenas caracteres repetidos.';
+  if (/(.)\1{2,}/.test(pw)) return 'A senha não pode ter 3 ou mais caracteres repetidos seguidos.';
+  if (/(0123|1234|2345|3456|4567|5678|6789|7890)/.test(pw)) return 'A senha não pode conter sequência numérica.';
+  if (/(abcd|bcde|cdef|defg|efgh|fghi|ghij|hijk|ijkl|jklm|klmn|lmno|mnop|nopq|opqr|pqrs|qrst|rstu|stuv|tuvw|uvwx|vwxy|wxyz)/i.test(pw)) return 'A senha não pode conter sequência alfabética.';
+  if (/(qwerty|asdfgh|zxcvbn|password|senhas?|123456|654321|abcdefgh)/i.test(pw)) return 'A senha é muito fácil de adivinhar.';
+  return null;
+}
+
 // Auth UI
 function updateHeaderUser() {
   const el = document.getElementById('header-user-area');
@@ -483,6 +493,11 @@ function initAuthHandlers() {
       showToast('Digite um e-mail válido.');
       return;
     }
+    const weakPw = isWeakPassword(password);
+    if (weakPw) {
+      showToast(weakPw);
+      return;
+    }
     try {
       await signUp(email, password, username);
       const confirmBody = `
@@ -536,8 +551,19 @@ function initAuthHandlers() {
     btn.addEventListener('click', () => switchAuthTab(btn.dataset.authTab));
   });
 
-  document.getElementById('btn-google-login')?.addEventListener('click', () => {
-    showToast('Login com Google em breve. Use e-mail por enquanto.');
+  document.getElementById('btn-google-login')?.addEventListener('click', async () => {
+    try {
+      const { supabase } = await import('./config.js');
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+      if (error) throw error;
+    } catch (err) {
+      showToast('Erro ao conectar com Google: ' + (err.message || 'tente novamente'));
+    }
   });
 }
 
