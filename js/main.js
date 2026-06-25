@@ -2,7 +2,7 @@ import { initAuth, getCurrentUser, getCurrentProfile, signIn, signUp, signOut, r
 import { fetchFeaturedGames, fetchPopularGames, fetchNewReleases, fetchGameDetails, fetchPublisher, fetchPublisherGames, searchAPI, getReviews, toggleReviewReaction } from './api.js';
 import { showPage, openModal, closeModal, skeletons, showToast, formatDate } from './ui.js';
 import { initCarousel, goSlide, resetCarouselTimer, scrollShowcase, makeGameCard } from './games.js';
-import { makeReviewCard, renderReviews, renderTagCloud, renderTrending, filterGenre, openReview, initWriteReview, postComment, loadReviews, loadGenres } from './reviews.js';
+import { makeReviewCard, renderReviews, renderTagCloud, renderTrending, filterGenre, openReview, initWriteReview, postComment, loadReviews, loadGenres, startReply } from './reviews.js';
 import { getUserLibrary } from './api.js';
 import { loadNotifications, markAllRead, renderNotificationBadge } from './notifications.js';
 import { supabase } from './config.js';
@@ -769,6 +769,19 @@ function initEventDelegation() {
         });
       }
       if (action === 'post-comment') postComment(target.dataset.reviewId);
+      if (action === 'reply-comment') {
+        startReply(target.dataset.commentId, target.dataset.author, target.dataset.reviewId);
+      }
+      if (action === 'delete-comment') {
+        const user = getCurrentUser();
+        if (!user) return;
+        (async () => {
+          const { supabase: sb } = await import('./config.js');
+          await sb.from('comments').update({ deleted_at: new Date().toISOString() }).eq('id', target.dataset.commentId);
+          showToast('Coment\u00e1rio exclu\u00eddo!');
+          openReview(target.dataset.reviewId);
+        })();
+      }
       if (action === 'comment-click') {
         openReview(target.dataset.reviewId);
         setTimeout(() => {

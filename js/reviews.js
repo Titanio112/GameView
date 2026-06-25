@@ -413,22 +413,67 @@ function translateReviewError(message) {
 }
 
 // Review Modal (read)
+function timeAgo(dateStr) {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const seconds = Math.floor((now - date) / 1000);
+  if (seconds < 60) return 'agora';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `h\u00e1 ${minutes}min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `h\u00e1 ${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `h\u00e1 ${days}d`;
+  return formatDate(dateStr);
+}
+
+function buildCommentTree(comments) {
+  const map = {};
+  const roots = [];
+  comments.forEach(c => { map[c.id] = { ...c, replies: [] }; });
+  comments.forEach(c => {
+    if (c.parent_id && map[c.parent_id]) {
+      map[c.parent_id].replies.push(map[c.id]);
+    } else {
+      roots.push(map[c.id]);
+    }
+  });
+  return roots;
+}
+
+function renderComment(c, user, reviewId, depth = 0) {
+  const avatar = c.profiles?.avatar_url || '';
+  const name = c.profiles?.display_name || 'An\u00f4nimo';
+  const isOwner = user && c.user_id === user.id;
+  const repliesHtml = c.replies.map(r => renderComment(r, user, reviewId, depth + 1)).join('');
+
+  return `
+    <div class="comment-item${depth > 0 ? ' comment-reply' : ''}" data-comment-id="${c.id}">
+      <div class="ci-avatar"><img src="${avatar}" alt=""></div>
+      <div class="ci-body">
+        <div class="ci-header">
+          <span class="ci-author">${name}</span>
+          <span class="ci-time">${timeAgo(c.created_at)}</span>
+        </div>
+        <p class="ci-text">${c.body}</p>
+        <div class="ci-actions">
+          ${user ? `<button class="ci-reply-btn" data-action="reply-comment" data-comment-id="${c.id}" data-review-id="${reviewId}" data-author="${name}">Responder</button>` : ''}
+          ${isOwner ? `<button class="ci-delete-btn" data-action="delete-comment" data-comment-id="${c.id}" data-review-id="${reviewId}">Excluir</button>` : ''}
+        </div>
+        <div class="ci-replies" id="replies-${c.id}">${repliesHtml}</div>
+      </div>
+    </div>
+  `;
+}
+
 export async function openReview(id) {
   const rv = allReviews.find(r => r.id === id);
   if (!rv) return;
 
   const comments = await getComments(id);
   const user = getCurrentUser();
-
-  const commentList = comments.map(c => `
-    <div class="comment-item">
-      <div class="ci-avatar"><img src="${c.profiles?.avatar_url || ''}" alt=""></div>
-      <div>
-        <div class="ci-author">${c.profiles?.display_name || ''}</div>
-        <p class="ci-text">${c.body}</p>
-      </div>
-    </div>
-  `).join('');
+  const tree = buildCommentTree(comments);
+  const commentList = tree.map(c => renderComment(c, user, id)).join('');
 
   const avHtml = user
     ? `<div class="comment-input-av"><img src="${user.user_metadata?.avatar_url || ''}" alt=""></div>`
@@ -465,7 +510,7 @@ export async function openReview(id) {
         </button>
       </div>
       <div class="comments-head">${comments.length} Coment\u00e1rio${comments.length !== 1 ? 's' : ''}</div>
-      <div class="comment-input-row">
+      <div class="comment-input-row" id="main-comment-input">
         ${avHtml}
         <div class="comment-input-wrap">
           <textarea class="comment-input" id="comment-ta-${rv.id}"
@@ -480,6 +525,33 @@ export async function openReview(id) {
   openModal('review-modal-overlay');
 }
 
+let replyingTo = null;
+
+export function startReply(commentId, authorName, reviewId) {
+  replyingTo = { commentId, reviewId };
+  const mainInput = document.getElementById('main-comment-input');
+  if (!mainInput) return;
+  const ta = mainInput.querySelector('textarea');
+  const btn = mainInput.querySelector('button');
+  if (ta) {
+    ta.placeholder = `Respondendo a ${authorName}...`;
+    ta.focus();
+  }
+  if (btn) btn.textContent = 'Responder';
+  mainInput.classList.add('replying');
+}
+
+export function cancelReply() {
+  replyingTo = null;
+  const mainInput = document.getElementById('main-comment-input');
+  if (!mainInput) return;
+  const ta = mainInput.querySelector('textarea');
+  const btn = mainInput.querySelector('button');
+  if (ta) ta.placeholder = 'Adicione um coment\u00e1rio...';
+  if (btn) btn.textContent = 'Comentar';
+  mainInput.classList.remove('replying');
+}
+
 export async function postComment(id) {
   const user = getCurrentUser();
   if (!user) return openModal('auth-modal-overlay');
@@ -487,14 +559,21 @@ export async function postComment(id) {
   const ta = document.getElementById(`comment-ta-${id}`);
   if (!ta || !ta.value.trim()) return;
 
-  const comment = await createComment({
+  const commentData = {
     user_id: user.id,
     review_id: id,
     body: ta.value.trim(),
-  });
+  };
+
+  if (replyingTo && replyingTo.reviewId === id) {
+    commentData.parent_id = replyingTo.commentId;
+  }
+
+  const comment = await createComment(commentData);
 
   if (comment) {
     ta.value = '';
+    cancelReply();
     showToast('Coment\u00e1rio publicado!');
     openReview(id);
   }
