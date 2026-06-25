@@ -31,11 +31,21 @@ export async function initAuth() {
     currentUser = session.user;
     currentProfile = await getProfile(currentUser.id);
     if (!currentProfile) {
+      const baseUsername = currentUser.user_metadata?.user_name
+        || currentUser.user_metadata?.full_name?.toLowerCase().replace(/\s+/g, '')
+        || currentUser.email?.split('@')[0]
+        || 'user';
+      let username = baseUsername;
+      let counter = 1;
+      while (await checkUsernameExists(username)) {
+        username = `${baseUsername}${counter}`;
+        counter++;
+      }
       currentProfile = await upsertProfile({
         id: currentUser.id,
-        username: currentUser.user_metadata?.user_name || currentUser.email?.split('@')[0] || 'user',
-        display_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.user_name || currentUser.email?.split('@')[0] || 'user',
-        avatar_url: currentUser.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.id}`,
+        username,
+        display_name: currentUser.user_metadata?.full_name || username,
+        avatar_url: currentUser.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
       });
     }
   }
@@ -45,11 +55,21 @@ export async function initAuth() {
       currentUser = session.user;
       currentProfile = await getProfile(currentUser.id);
       if (!currentProfile) {
+        const baseUsername = currentUser.user_metadata?.user_name
+          || currentUser.user_metadata?.full_name?.toLowerCase().replace(/\s+/g, '')
+          || currentUser.email?.split('@')[0]
+          || 'user';
+        let username = baseUsername;
+        let counter = 1;
+        while (await checkUsernameExists(username)) {
+          username = `${baseUsername}${counter}`;
+          counter++;
+        }
         currentProfile = await upsertProfile({
           id: currentUser.id,
-          username: currentUser.user_metadata?.user_name || currentUser.email?.split('@')[0] || 'user',
-          display_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.user_name || currentUser.email?.split('@')[0] || 'user',
-          avatar_url: currentUser.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.id}`,
+          username,
+          display_name: currentUser.user_metadata?.full_name || username,
+          avatar_url: currentUser.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
         });
       }
     } else {
